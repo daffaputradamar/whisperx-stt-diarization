@@ -18,8 +18,20 @@ logger = logging.getLogger(__name__)
 
 # Register safe globals for PyTorch 2.6+ compatibility with OmegaConf
 try:
+    import omegaconf
     from omegaconf import DictConfig, ListConfig
-    torch.serialization.add_safe_globals([DictConfig, ListConfig])
+    from omegaconf.base import ContainerMetadata
+    
+    # Register all OmegaConf classes to avoid weights_only errors
+    safe_classes = [DictConfig, ListConfig, ContainerMetadata]
+    
+    # Dynamically add all omegaconf classes
+    for attr_name in dir(omegaconf):
+        attr = getattr(omegaconf, attr_name)
+        if isinstance(attr, type) and attr_name[0].isupper():
+            safe_classes.append(attr)
+    
+    torch.serialization.add_safe_globals(safe_classes)
 except Exception as e:
     logger.warning(f"Could not register OmegaConf safe globals: {e}")
 

@@ -1,5 +1,34 @@
 import gc
 import torch
+
+# CRITICAL: Patch torch.load BEFORE importing anything else that uses it
+# This handles PyTorch 2.6+ strict weights_only behavior
+if hasattr(torch, 'load'):
+    _original_torch_load = torch.load
+    
+    def _patched_torch_load(f, *args, **kwargs):
+        """Patched torch.load that defaults to weights_only=False for model compatibility."""
+        if 'weights_only' not in kwargs:
+            kwargs['weights_only'] = False
+        return _original_torch_load(f, *args, **kwargs)
+    
+    torch.load = _patched_torch_load
+
+# Also patch torch.serialization methods if they exist
+try:
+    import torch.serialization as ts
+    if hasattr(ts, '_load'):
+        _original_serialization_load = ts._load
+        
+        def _patched_serialization_load(f, *args, **kwargs):
+            if 'weights_only' not in kwargs:
+                kwargs['weights_only'] = False
+            return _original_serialization_load(f, *args, **kwargs)
+        
+        ts._load = _patched_serialization_load
+except Exception:
+    pass
+
 import whisperx
 from whisperx.diarize import DiarizationPipeline
 from typing import Optional, Dict, Any, Callable
@@ -15,19 +44,6 @@ from app.models import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Patch torch.load for PyTorch 2.6+ compatibility
-# Models from trusted sources (huggingface, official repos) need weights_only=False
-_original_torch_load = torch.load
-
-def _patched_torch_load(f, *args, **kwargs):
-    """Patched torch.load that defaults to weights_only=False for model compatibility."""
-    # If weights_only not specified, default to False for model loading
-    if 'weights_only' not in kwargs:
-        kwargs['weights_only'] = False
-    return _original_torch_load(f, *args, **kwargs)
-
-torch.load = _patched_torch_load
 
 
 class WhisperXService:

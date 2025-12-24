@@ -16,24 +16,18 @@ from app.models import (
 
 logger = logging.getLogger(__name__)
 
-# Register safe globals for PyTorch 2.6+ compatibility with OmegaConf
-try:
-    import omegaconf
-    from omegaconf import DictConfig, ListConfig
-    from omegaconf.base import ContainerMetadata
-    
-    # Register all OmegaConf classes to avoid weights_only errors
-    safe_classes = [DictConfig, ListConfig, ContainerMetadata]
-    
-    # Dynamically add all omegaconf classes
-    for attr_name in dir(omegaconf):
-        attr = getattr(omegaconf, attr_name)
-        if isinstance(attr, type) and attr_name[0].isupper():
-            safe_classes.append(attr)
-    
-    torch.serialization.add_safe_globals(safe_classes)
-except Exception as e:
-    logger.warning(f"Could not register OmegaConf safe globals: {e}")
+# Patch torch.load for PyTorch 2.6+ compatibility
+# Models from trusted sources (huggingface, official repos) need weights_only=False
+_original_torch_load = torch.load
+
+def _patched_torch_load(f, *args, **kwargs):
+    """Patched torch.load that defaults to weights_only=False for model compatibility."""
+    # If weights_only not specified, default to False for model loading
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_torch_load(f, *args, **kwargs)
+
+torch.load = _patched_torch_load
 
 
 class WhisperXService:

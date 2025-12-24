@@ -1,7 +1,7 @@
 # WhisperX Transcription API - Docker Image
-# Uses NVIDIA CUDA base image for GPU acceleration
+# Uses NVIDIA CUDA base image with cuDNN for GPU acceleration
 
-FROM nvidia/cuda:13.1.0-runtime-ubuntu22.04
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive

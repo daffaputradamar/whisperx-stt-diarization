@@ -16,6 +16,13 @@ from app.models import (
 
 logger = logging.getLogger(__name__)
 
+# Register safe globals for PyTorch 2.6+ compatibility with OmegaConf
+try:
+    from omegaconf import DictConfig, ListConfig
+    torch.serialization.add_safe_globals([DictConfig, ListConfig])
+except Exception as e:
+    logger.warning(f"Could not register OmegaConf safe globals: {e}")
+
 
 class WhisperXService:
     """

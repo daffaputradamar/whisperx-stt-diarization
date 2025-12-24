@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: whisperx-api
     restart: unless-stopped
+    user: "1000:1000"  # Match appuser UID:GID
     
     # GPU access - requires NVIDIA Container Toolkit
     deploy:

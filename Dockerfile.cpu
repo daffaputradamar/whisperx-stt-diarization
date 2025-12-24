@@ -29,15 +29,25 @@ RUN pip install --no-cache-dir \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser
+
 # Copy application code
 COPY app/ ./app/
 COPY client_example.py .
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
+# Create directories and set permissions
+RUN mkdir -p /app/uploads \
+    && mkdir -p /home/appuser/.cache/huggingface \
+    && mkdir -p /home/appuser/.cache/matplotlib \
+    && chown -R appuser:appuser /app \
+    && chown -R appuser:appuser /home/appuser/.cache
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Set cache environment variables
+ENV HF_HOME=/home/appuser/.cache/huggingface
+ENV MPLCONFIGDIR=/home/appuser/.cache/matplotlib
+
+# Switch to non-root user
 USER appuser
 
 # Expose port

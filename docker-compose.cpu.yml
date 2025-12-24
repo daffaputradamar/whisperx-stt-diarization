@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile.cpu
     container_name: whisperx-api-cpu
     restart: unless-stopped
+    user: "1000:1000"  # Match appuser UID:GID
     
     ports:
       - "9050:8000"

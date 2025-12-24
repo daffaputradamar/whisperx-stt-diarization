@@ -1,31 +1,53 @@
 import gc
 import torch
+import sys
+import warnings
 
-# CRITICAL: Patch torch.load BEFORE importing anything else that uses it
-# This handles PyTorch 2.6+ strict weights_only behavior
-if hasattr(torch, 'load'):
-    _original_torch_load = torch.load
-    
-    def _patched_torch_load(f, *args, **kwargs):
-        """Patched torch.load that defaults to weights_only=False for model compatibility."""
-        if 'weights_only' not in kwargs:
-            kwargs['weights_only'] = False
-        return _original_torch_load(f, *args, **kwargs)
-    
-    torch.load = _patched_torch_load
+# Suppress weights_only warnings
+warnings.filterwarnings("ignore", message=".*weights_only.*")
 
-# Also patch torch.serialization methods if they exist
+# CRITICAL: Patch torch.load BEFORE importing anything that uses it
+# This ensures all torch.load calls default to weights_only=False
+_original_torch_load = torch.load
+
+def _patched_torch_load(f, *args, **kwargs):
+    """Patched torch.load that defaults to weights_only=False for model compatibility."""
+    # Always set weights_only=False to allow loading complex pretrained models
+    # These are from trusted sources (HuggingFace, official repos)
+    kwargs['weights_only'] = False
+    return _original_torch_load(f, *args, **kwargs)
+
+torch.load = _patched_torch_load
+
+# Also patch pickle loading at the serialization level
 try:
-    import torch.serialization as ts
-    if hasattr(ts, '_load'):
-        _original_serialization_load = ts._load
-        
-        def _patched_serialization_load(f, *args, **kwargs):
-            if 'weights_only' not in kwargs:
-                kwargs['weights_only'] = False
-            return _original_serialization_load(f, *args, **kwargs)
-        
-        ts._load = _patched_serialization_load
+    import pickle
+    import torch.serialization
+    
+    # Add all common machine learning types to safe globals
+    safe_classes = []
+    
+    # OmegaConf classes
+    try:
+        from omegaconf import DictConfig, ListConfig
+        from omegaconf.base import ContainerMetadata
+        safe_classes.extend([DictConfig, ListConfig, ContainerMetadata])
+    except ImportError:
+        pass
+    
+    # NumPy types
+    try:
+        import numpy as np
+        safe_classes.extend([np.ndarray, np.dtype])
+    except ImportError:
+        pass
+    
+    # Register safe globals if we have any
+    if safe_classes:
+        try:
+            torch.serialization.add_safe_globals(safe_classes)
+        except Exception as e:
+            print(f"Warning: Could not add safe globals: {e}", file=sys.stderr)
 except Exception:
     pass
 

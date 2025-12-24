@@ -29,8 +29,8 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Install PyTorch with CUDA support first (for better caching)
 RUN pip install --no-cache-dir \
-    torch==2.1.0 \
-    torchaudio==2.1.0 \
+    torch>=2.8.0 \
+    torchaudio>=2.8.0 \
     --index-url https://download.pytorch.org/whl/cu118
 
 # Copy requirements and install dependencies

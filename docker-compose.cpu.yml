@@ -1,0 +1,62 @@
+services:
+  whisperx-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: whisperx-api-cpu
+    restart: unless-stopped
+    
+    ports:
+      - "9050:8000"
+    
+    environment:
+      # API Settings
+      - APP_NAME=WhisperX Transcription API
+      - APP_VERSION=1.0.0
+      - DEBUG=false
+      
+      # API Keys
+      - API_KEYS=${API_KEYS:-your-secure-api-key}
+      
+      # HuggingFace Token
+      - HF_TOKEN=${HF_TOKEN}
+      
+      # WhisperX Settings (CPU optimized)
+      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+      - DEVICE=cpu
+      - COMPUTE_TYPE=int8
+      - BATCH_SIZE=4
+      
+      # Storage
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-500}
+      
+      # Worker Settings
+      - MAX_CONCURRENT_TASKS=1
+      - TASK_TIMEOUT_SECONDS=7200
+      
+      # Cleanup
+      - CLEANUP_AFTER_HOURS=24
+    
+    volumes:
+      - whisperx-uploads:/app/uploads
+      - whisperx-cache:/home/appuser/.cache
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  whisperx-uploads:
+    driver: local
+  whisperx-cache:
+    driver: local

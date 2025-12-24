@@ -1,0 +1,21 @@
+# WhisperX Transcription API
+# Core dependencies
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+aiofiles>=23.2.1
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# WhisperX and ML dependencies
+whisperx @ git+https://github.com/m-bain/whisperx.git
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Additional dependencies for whisperx
+faster-whisper>=0.10.0
+pyannote.audio>=3.1.0
+transformers>=4.36.0
+
+# Utilities
+python-dotenv>=1.0.0
